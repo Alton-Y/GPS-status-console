@@ -20,11 +20,26 @@ function [GPS] = GPRMC(raw, GPS)
 
 if checkType( raw, '$GPRMC' ) == 1
     
+    % Split GPS message
     C = splitSentance(raw);
     
     
-    GPS.GPRMC.TimeStamp = str2double(C(1));
+    % GPRMC TimeStamp and DateStamp strings
+    GPS.GPRMC.TimeStamp = C{1};
+    GPS.GPRMC.DateStamp = C{9};
     
+    
+    % Convert TimeStamp and DateStamp strings to MATLAB Datenum
+    GPS.GPRMC.Datenum = datenum(strcat(C{9},C{1}),...
+    'ddmmyyHHMMSS.FFF');
+    
+
+    % Compare GPS message age with current time (Local + 4hrs)
+    GPS.GPRMC.AgeInSecond = ((now+4/24)-GPS.GPRMC.Datenum)*24*60*60;
+
+
+
+    % GPRMC.Validity
     if strcmp(C{2},'A') == 1
         GPS.GPRMC.Validity = 'OK';
     elseif strcmp(C{2},'V') == 1
@@ -34,7 +49,7 @@ if checkType( raw, '$GPRMC' ) == 1
     end
     
     
-    
+    % Lat Lon negative sign 
     if strcmp(C{4},'N') == 1
         NS = 1;
     else
@@ -46,20 +61,21 @@ if checkType( raw, '$GPRMC' ) == 1
         EW = -1;
     end
     
+    % GPRMC Lat and Lon
     GPS.GPRMC.Latitude = NS*(floor(str2double(C{3})/100)+rem(str2double(C{3}),100)/60);
     GPS.GPRMC.Longitude = EW*(floor(str2double(C{5})/100)+rem(str2double(C{5}),100)/60);
     
-    
+    % GPRMC Spd and Course
     GPS.GPRMC.SpeedInKnots = str2double(C(7));
     GPS.GPRMC.TrueCourse = str2double(C(8));
-    GPS.GPRMC.DateStamp = str2double(C(9));
     
+    
+    % GPRMC Mag variation
     if strcmp(C{11},'E') == 1
         VarEW = 1;
     else
         VarEW = -1;
     end
-    
     GPS.GPRMC.Variation = VarEW*(str2double(C(10)));
     
 
