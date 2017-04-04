@@ -12,7 +12,7 @@
 %8-11, 12-15, 16-19   for up to 4 satellites per sentence
 %       *75          the checksum data, always begins with *
 
-function [info, PRN, elev, azi, SNR] = updateSNR(raw, elev, azi, SNR)
+function [info, data] = updateSNR(raw)
 
 
 try
@@ -22,27 +22,15 @@ C = strsplit(cs{1}, ',','CollapseDelimiters',0);
 
 matC = str2double(C(2:end));
 
-% sometimes NaN may appear, this will get rid of it
-% matC = matC(~isnan(matC))
 
-% numSat = matC(3);
 
 info = matC(1:3); % info = [message#, message count, numsat]
 
 data = reshape(matC(4:end),4,[])'; %each row is a different PRN
 
 
-PRN = data(:,1);
+% do data sort and storage outside of this function in the main loop
 
-elev(PRN(~isnan(data(:,2)))) = data(~isnan(data(:,2)),2);
-azi(PRN(~isnan(data(:,3)))) = data(~isnan(data(:,3)),3);
-SNR(PRN(~isnan(data(:,4)))) = data(~isnan(data(:,4)),4);
-
-SNR(PRN(isnan(data(:,4)))) = 0;
-
-% ZERO the data when sat no longer appear in PRN list
-% PRNlist = 1:length(elev);
-% elev(PRN(~isnan(data(:,2)))) = data(~isnan(data(:,2)),2);
 
 
 catch

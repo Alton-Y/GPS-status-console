@@ -26,14 +26,17 @@ s = serial('COM3');
 fopen(s);
 i = 1;
 
-elev = [];
-azi = [];
-SNR = [];
-allPRN = [];
+% elev = [];
+% azi = [];
+% SNR = [];
+GPGSV = [];
 
 %figure
 figure(1)
 clf(1)
+
+c = hsv(250);
+c = c(1:100,:);
 
 pax = subplot(1,2,1,polaraxes);
 pax.ThetaAxisUnits = 'degrees'
@@ -41,7 +44,9 @@ pax.ThetaDir = 'clockwise'
 pax.ThetaZeroLocation = 'top'
 pax.RDir = 'reverse'
 pax.RLim = [0 90]
-% hold on
+hold on
+
+
 
 str = subplot(1,2,2);
 GPS = [];
@@ -55,7 +60,7 @@ while i>0
         if strcmp(raw(1:6),'$GPRMC') == 1
             GPS = GPRMC(raw, GPS);
         end
-
+        
         %if message id is GPGSA
         if strcmp(raw(1:6),'$GPGSA') == 1
             GPS = GPGSA(raw, GPS);
@@ -66,48 +71,75 @@ while i>0
             disp(raw)
             
             % info = [message#, message count, numsat]
-            [info, PRN, elev, azi, SNR] = updateSNR(raw, elev, azi, SNR);
-            allPRN = [allPRN;PRN];
+            [info, data] = updateSNR(raw);
+            GPGSV = [GPGSV;data];
             
             if info(1) == info(2) % if message id = total number of messages
                 numsat = info(3)
                 %                 sort(allPRN)
                 
-                % These PRN no longer appear to be seen
-                resetIdx = ~ismember(1:length(elev),allPRN);
-                %                 find(resetIdx)
-                azi(resetIdx) = nan;
-                elev(resetIdx) = nan;
-                SNR(resetIdx) = nan;
+                % Get sat PNR which are used to calculate the solution
+                SV = GPS.GPGSA.SV;
                 
-                allPRN = []; % reset PRN counter
+                % in GPGSV, turn nans in col4 (SNR) to zero
+                GPGSV(isnan(GPGSV(:,4)),4) = 0;
                 
-                Strength = [(1:length(SNR))' SNR']
-                Positions = [(1:length(elev))' azi' elev']
+                % sort GPGSV by col1 for easy plotting
+                GPGSV = sortrows(GPGSV,1);
+                
+                % empty azi, elev, SNR, (write all nans)
+                maxPRN = max(GPGSV(:,1));
+                elev = nan(maxPRN,1);
+                azi = nan(maxPRN,1);
+                SNR = zeros(maxPRN,1); %zero SNR
+                
+                % Write GPGSV data to azi, elev, SNR
+                elev(GPGSV(:,1)) = GPGSV(:,2);
+                azi(GPGSV(:,1)) = GPGSV(:,3);
+                SNR(GPGSV(:,1)) = GPGSV(:,4);
+                
+                
+                
+                [(1:maxPRN)' elev azi SNR]
+                                
+                
                 
                 cla(pax)
-                colr = hot(100);
-%                 polarplot(pax,deg2rad(azi(~isnan(azi))),elev(~isnan(elev)),'o','MarkerEdgeColor','none',...
-%                     'MarkerFaceColor',colr(SNR(~isnan(SNR))+1,:)','MarkerSize',14);
-                polarplot(pax,deg2rad(azi(~isnan(azi))),elev(~isnan(elev)),'o','MarkerEdgeColor','none',...
-                    'MarkerFaceColor','b','MarkerSize',14);
+                
+%                 c = flipud(parula(100));
+                
+                %  polarplot(pax,deg2rad(azi(~isnan(azi))),elev(~isnan(elev)),'o','MarkerEdgeColor','none',...
+                %  'MarkerFaceColor','b','MarkerSize',14);
+                
+                polarscatter(pax,deg2rad(azi(SV)),elev(SV),200,'k'...
+                    ,'MarkerFaceAlpha',0);
+                
+                polarscatter(pax,deg2rad(azi),elev,200,c(SNR+1,:),...
+                    'filled','MarkerFaceAlpha',.7);
+                
+                
+                
                 pax.ThetaAxisUnits = 'degrees';
                 pax.ThetaDir = 'clockwise';
                 pax.ThetaZeroLocation = 'top';
                 pax.RDir = 'reverse';
                 pax.RLim = [0 90];
-                
+                hold off
                 text(pax,deg2rad(azi),elev,num2cell([1:length(azi)]),...
                     'HorizontalAlignment','center',...
-                    'VerticalAlignment','middle','Color','white')
+                    'VerticalAlignment','middle','Color','black')
                 
-%                 drawnow
+                %                 drawnow
                 
                 cla(str);
-                bar(str,SNR);
-                ylim([0 50]);
+%                 bar(str,SNR);
+                bar(str,GPGSV(:,4))
+                set(str,'XTick',1:length(GPGSV(:,1)),'XTickLabel', string(GPGSV(:,1)));
+                ylim([0 75]);
                 grid on
                 drawnow
+                
+                GPGSV = []; % reset GPGSV data holder
                 
                 try
                     GPS.GPRMC
@@ -128,7 +160,7 @@ while i>0
         %         drawnow
         %
         %         subplot(1,2,2)
-
+        
         
         %         i = 0
     end
