@@ -89,9 +89,9 @@ while i>0
                 
                 % empty azi, elev, SNR, (write all nans)
                 maxPRN = max(GPGSV(:,1));
-                elev = nan(maxPRN,1);
-                azi = nan(maxPRN,1);
-                SNR = zeros(maxPRN,1); %zero SNR
+                elev = nan(1,maxPRN);
+                azi = nan(1,maxPRN);
+                SNR = zeros(1,maxPRN); %zero SNR
                 
                 % Write GPGSV data to azi, elev, SNR
                 elev(GPGSV(:,1)) = GPGSV(:,2);
@@ -100,24 +100,16 @@ while i>0
                 
                 
                 
-                [(1:maxPRN)' elev azi SNR]
+                [(1:maxPRN);elev;azi;SNR]'
                                 
-                
-                
+                %plotting                
                 cla(pax)
-                
-%                 c = flipud(parula(100));
-                
-                %  polarplot(pax,deg2rad(azi(~isnan(azi))),elev(~isnan(elev)),'o','MarkerEdgeColor','none',...
-                %  'MarkerFaceColor','b','MarkerSize',14);
-                
+                                
                 polarscatter(pax,deg2rad(azi(SV)),elev(SV),200,'k'...
                     ,'MarkerFaceAlpha',0);
                 
                 polarscatter(pax,deg2rad(azi),elev,200,c(SNR+1,:),...
                     'filled','MarkerFaceAlpha',.7);
-                
-                
                 
                 pax.ThetaAxisUnits = 'degrees';
                 pax.ThetaDir = 'clockwise';
