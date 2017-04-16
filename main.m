@@ -17,14 +17,21 @@ clc
 clear
 
 
+prompt = 'Enter Log File Name\n';
+logFileName = input(prompt,'s');
+
+
 try
-    fclose(instrfind)
-    delete(instrfind)
+    fclose(instrfind);
+    delete(instrfind);
 end
 s = serial('COM3');
-
 fopen(s);
 i = 1;
+
+% Setup File
+
+
 
 % elev = [];
 % azi = [];
@@ -39,11 +46,11 @@ c = hsv(250);
 c = c(1:100,:);
 
 pax = subplot(1,2,1,polaraxes);
-pax.ThetaAxisUnits = 'degrees'
-pax.ThetaDir = 'clockwise'
-pax.ThetaZeroLocation = 'top'
-pax.RDir = 'reverse'
-pax.RLim = [0 90]
+pax.ThetaAxisUnits = 'degrees';
+pax.ThetaDir = 'clockwise';
+pax.ThetaZeroLocation = 'top';
+pax.RDir = 'reverse';
+pax.RLim = [0 90];
 hold on
 
 
@@ -54,7 +61,17 @@ hold on
 
 while i>0
     if s.bytesavailable > 0
+%         tic
+        fid = fopen(sprintf('%s.log',logFileName),'a');
         raw = fgets(s);
+        fprintf(fid,'%s',raw);
+        fclose(fid);
+%         toc
+        
+        
+        % Log raw data to a log file
+        
+        
         
         %if message id is GPRMC
         if strcmp(raw(1:6),'$GPRMC') == 1
